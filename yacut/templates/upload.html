@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}Загрузка файлов{% endblock %}
+
+{% block content %}
+
+<section class="container my-5 px-4">
+
+  <h1 class="text-center">Загрузка файлов</h1>
+
+  <div class="row my-3">
+    <div class="col-sm"></div>
+
+    <div class="col-sm">
+
+      <form method="post" enctype="multipart/form-data">
+        {{ form.csrf_token }}
+
+        {{ form.files(class="form-control mb-3") }}
+
+        {% for error in form.files.errors %}
+          <p><span style="color:red">{{ error }}</span></p>
+        {% endfor %}
+
+        <input type="submit" class="btn btn-primary" value="Загрузить">
+      </form>
+
+    </div>
+
+    <div class="col-sm"></div>
+  </div>
+
+</section>
+{% if result %}
+  <div class="container mt-4">
+    <ul class="list-group">
+
+      {% for item in result %}
+        <li class="list-group-item">
+          {{ item.filename }} —
+          <a href="{{ url_for('redirect_view', short_id=item.short, _external=True) }}">
+            {{ url_for('redirect_view', short_id=item.short, _external=True) }}
+          </a>
+        </li>
+      {% endfor %}
+
+    </ul>
+  </div>
+{% endif %}
+
+{% endblock %}
