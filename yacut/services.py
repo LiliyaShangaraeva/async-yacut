@@ -34,11 +34,12 @@ async def upload_files_to_disk(files):
                 data = await response.json()
                 upload_url = data.get('href')
 
+            file_data = file.stream.read()
             file.stream.seek(0)
 
             async with session.put(
                 upload_url,
-                data=file.stream
+                data=file_data
             ) as response:
                 location = response.headers.get('Location')
                 if location:
