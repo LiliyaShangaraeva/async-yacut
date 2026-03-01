@@ -1,8 +1,9 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import MultipleFileField
 from wtforms import StringField, URLField
-from wtforms.validators import DataRequired, Length, Optional
-from yacut.constants import MAX_SHORT_ID_LENGTH, MIN_SHORT_ID_LENGTH
+from wtforms.validators import DataRequired, Length, Optional, Regexp
+from yacut.constants import (CUSTOM_ID_PATTERN, MAX_SHORT_ID_LENGTH,
+                             MIN_SHORT_ID_LENGTH)
 
 
 class URLMapForm(FlaskForm):
@@ -16,7 +17,11 @@ class URLMapForm(FlaskForm):
         'Ваш вариант короткой ссылки',
         validators=[
             Length(MIN_SHORT_ID_LENGTH, MAX_SHORT_ID_LENGTH),
-            Optional()
+            Optional(),
+            Regexp(
+                CUSTOM_ID_PATTERN,
+                message='Используйте только латинские буквы и цифры.'
+            )
         ]
     )
 

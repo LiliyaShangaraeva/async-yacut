@@ -1,3 +1,9 @@
+import string
+
 SHORT_ID_LENGTH = 6
 MIN_SHORT_ID_LENGTH = 1
 MAX_SHORT_ID_LENGTH = 16
+CUSTOM_ID_PATTERN = r'^[A-Za-z0-9]+$'
+ALLOWED_CHARS = string.ascii_letters + string.digits
+MAX_ATTEMPTS_TO_GENERATE_SHORT_ID = 10
+FORBIDDEN_SHORT_IDS = {'files'}

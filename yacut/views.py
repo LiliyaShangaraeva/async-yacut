@@ -3,11 +3,12 @@ from http import HTTPStatus
 
 import requests
 from flask import abort, current_app, flash, redirect, render_template
+
 from yacut import app, db
+from yacut.error_handlers import InvalidAPIUsage
 from yacut.forms import UploadForm, URLMapForm
 from yacut.models import URLMap
 from yacut.services import DOWNLOAD_URL, upload_files_to_disk
-from yacut.utils import get_unique_short_id
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -19,28 +20,18 @@ def index_view():
         custom_id = form.custom_id.data
         original = form.original_link.data
 
-        if not custom_id:
-            short = get_unique_short_id()
-        elif (
-            custom_id == 'files'
-            or URLMap.query.filter_by(short=custom_id).first()
-        ):
-            flash('Предложенный вариант короткой ссылки уже существует.')
+        try:
+            url_map = URLMap.create(original, custom_id)
+            db.session.commit()
+        except InvalidAPIUsage as e:
+            flash(e.message)
             return render_template('index.html', form=form)
-        else:
-            short = custom_id
-
-        url_map = URLMap(
-            original=original,
-            short=short
-        )
-        db.session.add(url_map)
-        db.session.commit()
 
         return render_template(
             'index.html',
             form=form,
-            short_url=short
+            short_url=url_map.short,
+            public_short_link=url_map.public_short_link()
         )
 
     return render_template('index.html', form=form)
@@ -58,7 +49,7 @@ async def upload_files():
         result = []
 
         for item in uploaded_files:
-            short = get_unique_short_id()
+            short = URLMap.generate_unique_short_id()
 
             url_map = URLMap(
                 original=item['disk_path'],
@@ -68,7 +59,8 @@ async def upload_files():
 
             result.append({
                 'filename': item['filename'],
-                'short': short
+                'short': short,
+                'public_short_link': url_map.public_short_link()
             })
 
         db.session.commit()
@@ -85,10 +77,7 @@ async def upload_files():
 @app.route('/<string:short_id>')
 def redirect_view(short_id):
     """Перенаправляет по короткому идентификатору на оригинальный URL."""
-    url_map = URLMap.query.filter_by(short=short_id).first()
-
-    if url_map is None:
-        abort(HTTPStatus.NOT_FOUND)
+    url_map = URLMap.query.filter_by(short=short_id).first_or_404()
 
     if not url_map.original.startswith('app:/'):
         return redirect(url_map.original)

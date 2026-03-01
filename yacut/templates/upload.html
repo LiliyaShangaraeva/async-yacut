@@ -4,33 +4,33 @@
 
 {% block content %}
 
-<section class="container my-5 px-4">
+  <section class="container my-5 px-4">
 
-  <h1 class="text-center">Загрузка файлов</h1>
+    <h1 class="text-center">Загрузка файлов</h1>
 
-  <div class="row my-3">
-    <div class="col-sm"></div>
+    <div class="row my-3">
+      <div class="col-sm"></div>
 
-    <div class="col-sm">
+      <div class="col-sm">
 
-      <form method="post" enctype="multipart/form-data">
-        {{ form.csrf_token }}
+        <form method="post" enctype="multipart/form-data">
+          {{ form.csrf_token }}
 
-        {{ form.files(class="form-control mb-3") }}
+          {{ form.files(class="form-control mb-3") }}
 
-        {% for error in form.files.errors %}
-          <p><span style="color:red">{{ error }}</span></p>
-        {% endfor %}
+          {% for error in form.files.errors %}
+            <p><span style="color:red">{{ error }}</span></p>
+          {% endfor %}
 
-        <input type="submit" class="btn btn-primary" value="Загрузить">
-      </form>
+          <input type="submit" class="btn btn-primary" value="Загрузить">
+        </form>
 
+      </div>
+
+      <div class="col-sm"></div>
     </div>
 
-    <div class="col-sm"></div>
-  </div>
-
-</section>
+  </section>
 {% if result %}
   <div class="container mt-4">
     <ul class="list-group">
@@ -38,9 +38,7 @@
       {% for item in result %}
         <li class="list-group-item">
           {{ item.filename }} —
-          <a href="{{ url_for('redirect_view', short_id=item.short, _external=True) }}">
-            {{ url_for('redirect_view', short_id=item.short, _external=True) }}
-          </a>
+          <a href="{{ item.public_short_link }}">{{ item.public_short_link }}</a>
         </li>
       {% endfor %}
 
