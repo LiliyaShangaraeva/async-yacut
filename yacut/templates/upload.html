@@ -31,19 +31,19 @@
     </div>
 
   </section>
-{% if result %}
-  <div class="container mt-4">
-    <ul class="list-group">
+  {% if result %}
+    <div class="container mt-4">
+      <ul class="list-group">
 
-      {% for item in result %}
-        <li class="list-group-item">
-          {{ item.filename }} —
-          <a href="{{ item.public_short_link }}">{{ item.public_short_link }}</a>
-        </li>
-      {% endfor %}
+        {% for item in result %}
+          <li class="list-group-item">
+            {{ item.filename }} —
+            <a href="{{ item.public_short_link }}">{{ item.public_short_link }}</a>
+          </li>
+        {% endfor %}
 
-    </ul>
-  </div>
-{% endif %}
+      </ul>
+    </div>
+  {% endif %}
 
 {% endblock %}
