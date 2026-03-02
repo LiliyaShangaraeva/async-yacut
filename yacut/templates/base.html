@@ -18,16 +18,16 @@
     <title>{% block title %}YaCut{% endblock %}</title>
   </head>
 
-<body>
-  {% include 'includes/header.html' %}
+  <body>
+    {% include 'includes/header.html' %}
 
-  <main>
-    {% block content %}{% endblock %}
-  </main>
+    <main>
+      {% block content %}{% endblock %}
+    </main>
 
-  {% include 'includes/footer.html' %}
+    {% include 'includes/footer.html' %}
 
-  <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
 
-</body>
+  </body>
 </html>

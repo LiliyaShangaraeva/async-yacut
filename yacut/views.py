@@ -5,7 +5,7 @@ import requests
 from flask import abort, current_app, flash, redirect, render_template
 
 from yacut import app, db
-from yacut.error_handlers import InvalidAPIUsage
+from yacut.exceptions import URLMapError, ShortIdGenerationError
 from yacut.forms import UploadForm, URLMapForm
 from yacut.models import URLMap
 from yacut.services import DOWNLOAD_URL, upload_files_to_disk
@@ -22,8 +22,7 @@ def index_view():
 
         try:
             url_map = URLMap.create(original, custom_id)
-            db.session.commit()
-        except InvalidAPIUsage as e:
+        except URLMapError as e:
             flash(e.message)
             return render_template('index.html', form=form)
 
@@ -47,23 +46,27 @@ async def upload_files():
 
         uploaded_files = await upload_files_to_disk(files)
         result = []
+        try:
+            for item in uploaded_files:
+                short = URLMap.generate_unique_short_id()
 
-        for item in uploaded_files:
-            short = URLMap.generate_unique_short_id()
+                url_map = URLMap(
+                    original=item['disk_path'],
+                    short=short
+                )
+                db.session.add(url_map)
 
-            url_map = URLMap(
-                original=item['disk_path'],
-                short=short
-            )
-            db.session.add(url_map)
+                result.append({
+                    'filename': item['filename'],
+                    'short': short,
+                    'public_short_link': url_map.public_short_link()
+                })
 
-            result.append({
-                'filename': item['filename'],
-                'short': short,
-                'public_short_link': url_map.public_short_link()
-            })
-
-        db.session.commit()
+            db.session.commit()
+        except ShortIdGenerationError as e:
+            db.session.rollback()
+            flash(f"Ошибка при создании ссылки: {e.message}")
+            return render_template('upload.html', form=form)
 
         return render_template(
             'upload.html',

@@ -1,7 +1,6 @@
 import random
 import re
 from datetime import datetime
-from http import HTTPStatus
 
 from flask import url_for
 
@@ -11,11 +10,14 @@ from yacut.constants import (ALLOWED_CHARS, CUSTOM_ID_PATTERN,
                              MAX_ATTEMPTS_TO_GENERATE_SHORT_ID,
                              MAX_SHORT_ID_LENGTH, MIN_SHORT_ID_LENGTH,
                              SHORT_ID_LENGTH)
-from yacut.error_handlers import InvalidAPIUsage
+from yacut.exceptions import (ShortIdAlreadyExistsError,
+                              ShortIdGenerationError, ShortIdValidationError,
+                              URLMapNotFoundError)
 
 SHORT_ID_EXISTS_ERROR = 'Предложенный вариант короткой ссылки уже существует.'
 INVALID_SHORT_ID_LENGTH = 'Указано недопустимое имя для короткой ссылки'
 ID_NOT_FOUND_ERROR = 'Указанный id не найден'
+SHORT_ID_GENERATION_ERROR = 'Не удалось сгенерировать уникальный ID'
 
 
 class URLMap(db.Model):
@@ -32,6 +34,11 @@ class URLMap(db.Model):
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 
     @staticmethod
+    def get_by_short(short_id):
+        """Возвращает URLMap по short_id или None."""
+        return URLMap.query.filter_by(short=short_id).first()
+
+    @staticmethod
     def create(original, custom_id=None):
         """Создаёт новую запись URLMap."""
         if custom_id is not None:
@@ -39,16 +46,16 @@ class URLMap(db.Model):
             if not (
                 MIN_SHORT_ID_LENGTH <= len(custom_id) <= MAX_SHORT_ID_LENGTH
             ):
-                raise InvalidAPIUsage(INVALID_SHORT_ID_LENGTH)
+                raise ShortIdValidationError(INVALID_SHORT_ID_LENGTH)
 
             if not re.match(CUSTOM_ID_PATTERN, custom_id):
-                raise InvalidAPIUsage(INVALID_SHORT_ID_LENGTH)
+                raise ShortIdValidationError(INVALID_SHORT_ID_LENGTH)
 
             if (
                 custom_id in FORBIDDEN_SHORT_IDS
-                or URLMap.query.filter_by(short=custom_id).first()
+                or not URLMap.is_short_id_available(custom_id)
             ):
-                raise InvalidAPIUsage(SHORT_ID_EXISTS_ERROR)
+                raise ShortIdAlreadyExistsError(SHORT_ID_EXISTS_ERROR)
 
             short = custom_id
         else:
@@ -57,6 +64,7 @@ class URLMap(db.Model):
         url_map = URLMap(original=original, short=short)
 
         db.session.add(url_map)
+        db.session.commit()
         return url_map
 
     def to_dict(self):
@@ -70,10 +78,10 @@ class URLMap(db.Model):
 
     @staticmethod
     def get_or_404(short_id):
-        """Возвращает URLMap по short_id или вызывает InvalidAPIUsage(404)."""
-        url_map = URLMap.query.filter_by(short=short_id).first()
+        """Возвращает URLMap по short_id."""
+        url_map = URLMap.get_by_short(short_id)
         if url_map is None:
-            raise InvalidAPIUsage(ID_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND)
+            raise URLMapNotFoundError(ID_NOT_FOUND_ERROR)
         return url_map
 
     def public_short_link(self):
@@ -83,7 +91,7 @@ class URLMap(db.Model):
     @staticmethod
     def is_short_id_available(short_id):
         """Возвращает True, если short_id свободен."""
-        return URLMap.query.filter_by(short=short_id).first() is None
+        return URLMap.get_by_short(short_id) is None
 
     @staticmethod
     def generate_unique_short_id():
@@ -96,7 +104,4 @@ class URLMap(db.Model):
 
             if URLMap.is_short_id_available(short_id):
                 return short_id
-        raise InvalidAPIUsage(
-            "Не удалось сгенерировать уникальный ID",
-            HTTPStatus.INTERNAL_SERVER_ERROR
-        )
+        raise ShortIdGenerationError(SHORT_ID_GENERATION_ERROR)
